@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>投稿内容の最終確認</title>
+<style>
+  body { font-family: -apple-system, "Hiragino Kaku Gothic ProN", sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #1f2937; }
+  h1 { font-size: 20px; }
+  img { max-width: 100%; border-radius: 8px; border: 1px solid #e5e7eb; }
+  .caption-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-top: 12px; white-space: pre-wrap; font-size: 14px; }
+  .checklist { margin-top: 16px; }
+  .check-item { padding: 8px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+  .pass { background: #d1fae5; color: #065f46; }
+  .fail { background: #fee2e2; color: #991b1b; }
+  .attempt-header { font-size: 12px; color: #6b7280; margin-top: 14px; }
+  .status-banner { padding: 10px 14px; border-radius: 6px; font-size: 14px; margin-top: 12px; }
+  .approved { background: #d1fae5; color: #065f46; }
+  .not-approved { background: #fef3c7; color: #92400e; }
+  .actions { margin-top: 24px; display: flex; gap: 12px; }
+  button { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  #regenBtn { background: #e5e7eb; color: #1f2937; }
+  #publishBtn { background: #db2777; color: white; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  #result { margin-top: 16px; font-size: 14px; white-space: pre-line; }
+  .mock-note { font-size: 12px; color: #92400e; margin-top: 4px; }
+</style>
+</head>
+<body>
+<h1>投稿内容の最終確認(人間チェック)</h1>
+<div id="content">読み込み中...</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const id = params.get('id');
+
+async function load() {
+  const res = await fetch(`/api/draft/${id}`);
+  const d = await res.json();
+  if (!res.ok) {
+    document.getElementById('content').textContent = 'エラー: ' + d.error;
+    return;
+  }
+  render(d);
+}
+
+function render(d) {
+  const lastAttempt = d.attempts[d.attempts.length - 1];
+  const checklistHtml = lastAttempt.review.results.map(r =>
+    `<div class="check-item ${r.pass ? 'pass' : 'fail'}">${r.pass ? '✅' : '❌'} ${r.item}: ${r.reason}</div>`
+  ).join('');
+
+  document.getElementById('content').innerHTML = `
+    <img src="${d.imageUrl}?t=${Date.now()}" alt="生成イラスト">
+    <div class="status-banner ${d.autoApproved ? 'approved' : 'not-approved'}">
+      ${d.autoApproved
+        ? `✅ 自動レビュー承認済み(${d.attempts.length}回目で承認)`
+        : `⚠️ ${d.attempts.length}回試行しましたが自動レビュー未承認です。内容をよく確認してください。`}
+    </div>
+    <div class="caption-box">${escapeHtml(d.caption)}</div>
+    <div class="checklist">
+      <div class="attempt-header">最終試行(${lastAttempt.attempt}回目)のチェック結果:</div>
+      ${checklistHtml}
+    </div>
+    <div class="actions">
+      <button id="regenBtn">作り直す</button>
+      <button id="publishBtn">Instagramに投稿する</button>
+    </div>
+    <div id="result"></div>
+  `;
+
+  document.getElementById('regenBtn').addEventListener('click', async () => {
+    document.getElementById('result').textContent = '再生成中...';
+    const res = await fetch(`/api/regenerate/${id}`, { method: 'POST' });
+    const json = await res.json();
+    if (!res.ok) {
+      document.getElementById('result').textContent = 'エラー: ' + json.error;
+      return;
+    }
+    load();
+  });
+
+  document.getElementById('publishBtn').addEventListener('click', async () => {
+    if (!confirm('この内容でInstagramに投稿します。よろしいですか？')) return;
+    document.getElementById('publishBtn').disabled = true;
+    document.getElementById('result').textContent = '投稿処理中...';
+    try {
+      const res = await fetch(`/api/publish/${id}`, { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      document.getElementById('result').innerHTML =
+        `投稿しました。 media id: ${json.mediaId}` +
+        (json.mock ? `<div class="mock-note">※ ${json.note}</div>` : '');
+    } catch (err) {
+      document.getElementById('result').textContent = 'エラー: ' + err.message;
+      document.getElementById('publishBtn').disabled = false;
+    }
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+load();
+</script>
+</body>
+</html>
