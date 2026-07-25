@@ -119,6 +119,7 @@ def extract_credit_records():
         print(f"  ✓ {payment_month}: {len(records)}件 (¥{total:,})")
 
     # 保存
+    os.makedirs(WORK_DIR, exist_ok=True)
     out_path = os.path.join(WORK_DIR, "all_cc_v4.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(all_cc, f, ensure_ascii=False, indent=2)
