@@ -156,7 +156,9 @@ def parse_orico_csv(csv_path, payment_month):
     """
     オリコCSVを読み込む。
 
-    重要: エンコーディングは shift_jis。
+    重要: エンコーディングは通常 shift_jis だが、環境によっては utf-8 で
+    保存されている場合があるため、utf-8 を優先的に試し、失敗したら
+    shift_jis にフォールバックする。
 
     CSVの列構造:
         利用日, 取引先, ?, ご利用者, 支払月, ?, 支払回数, ?, 利用金額, ...
@@ -170,29 +172,40 @@ def parse_orico_csv(csv_path, payment_month):
     """
     records = []
     try:
-        with open(csv_path, encoding="shift_jis", errors="replace") as f:
-            text = f.read()
+        with open(csv_path, "rb") as f:
+            raw = f.read()
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            text = raw.decode("shift_jis", errors="replace")
     except Exception as e:
         print(f"CSV読込エラー {csv_path}: {e}")
         return records
 
-    for line in text.split("\n"):
-        parts = line.split(",")
+    # 重要: 金額列は "\27,665" のようにカンマを含む値がダブルクォートで
+    # 囲まれている。単純に line.split(",") すると引用符内のカンマでも
+    # 分割されてしまい、列がずれて金額が壊れる（例: "\27,665" が "27" と
+    # "665" に分かれ、先頭の "27" だけが金額として読み込まれる）。
+    # csv.reader でクォートを正しく解釈して分割する。
+    import csv
+    import io
+
+    for parts in csv.reader(io.StringIO(text)):
         if len(parts) < 9:
             continue
 
         # 日付が「YYYY年MM月DD日」形式かチェック
-        date_str = parts[0].strip('"').strip()
+        date_str = parts[0].strip()
         if not re.match(r"20\d{2}年\d+月\d+日", date_str):
             continue
 
         try:
-            vendor = parts[1].strip('"').strip()
-            user_type = parts[3].strip('"').strip() if len(parts) > 3 else ""
+            vendor = parts[1].strip()
+            user_type = parts[3].strip() if len(parts) > 3 else ""
             # 金額は8番目（インデックス）に \10,000 形式で入る
-            amount_str = parts[8].strip('"').replace("\\", "").replace(",", "").strip()
-            amount = int(amount_str) if amount_str.isdigit() else 0
-            
+            amount_str = parts[8].replace("\\", "").replace(",", "").strip()
+            amount = int(amount_str) if amount_str.lstrip("-").isdigit() else 0
+
             records.append({
                 "date": date_str,
                 "vendor": vendor,
