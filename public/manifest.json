@@ -1,0 +1,17 @@
+{
+  "name": "ユナイテッドファーマシー 配布物管理",
+  "short_name": "配布物管理",
+  "description": "店舗配布物の進捗管理アプリ 〜仕事を皆で進めよう2026〜",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F1F2ED",
+  "theme_color": "#2C6E63",
+  "lang": "ja",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

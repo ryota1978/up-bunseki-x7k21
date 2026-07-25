@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f1f2ed;
+  --foreground: #232b2e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
