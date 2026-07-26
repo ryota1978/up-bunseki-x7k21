@@ -29,6 +29,12 @@ from amount_corrections import apply_corrections
 def extract_project_records():
     """
     /mnt/project/ 内の全ファイルからレシート仕訳を抽出。
+
+    複数の会計年度をまたぐ場合、同じ連番のファイル名が年度をまたいで
+    重複しうる（各年度でファイル名の連番が1から振り直されるため）ので、
+    PROJECT_DIR 直下に年度ごとのサブディレクトリ（例: FY2022/, FY2026/）
+    を置き、再帰的に走査する。分類・金額抽出は basename のみを見るため、
+    サブディレクトリ構成はロジックに影響しない。
     """
     print("=" * 60)
     print("STEP 1-A: プロジェクトファイルから仕訳データ抽出")
@@ -39,7 +45,11 @@ def extract_project_records():
         return []
 
     records = []
-    files = sorted(os.listdir(PROJECT_DIR))
+    files = []
+    for root, _dirs, filenames in os.walk(PROJECT_DIR):
+        for fn in filenames:
+            files.append(fn)
+    files.sort()
     print(f"対象ファイル数: {len(files)}")
 
     for filename in files:

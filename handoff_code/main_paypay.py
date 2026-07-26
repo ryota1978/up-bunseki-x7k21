@@ -25,13 +25,18 @@ def extract_paypay_sales():
     print("STEP 2: PayPay店舗別売上抽出")
     print("=" * 60)
 
-    # PayPay関連ファイル
-    files = [f for f in sorted(os.listdir(PROJECT_DIR)) 
+    # PayPay関連ファイル（年度サブディレクトリをまたいで再帰的に走査）
+    all_files = []
+    for root, _dirs, filenames in os.walk(PROJECT_DIR):
+        for fn in filenames:
+            all_files.append((os.path.join(root, fn), fn))
+    all_files.sort(key=lambda t: t[1])
+    files = [(p, f) for p, f in all_files
              if f.endswith(".pdf") and re.search(r"paypay|ペイペイ", f, re.IGNORECASE)]
 
     # 手数料/売上 分離
-    sales_files = [f for f in files if "利用料" not in f]
-    fee_files = [f for f in files if "利用料" in f]
+    sales_files = [(p, f) for p, f in files if "利用料" not in f]
+    fee_files = [(p, f) for p, f in files if "利用料" in f]
 
     print(f"PayPay売上明細: {len(sales_files)}件")
     print(f"PayPay手数料: {len(fee_files)}件")
@@ -40,8 +45,7 @@ def extract_paypay_sales():
     sales_data = defaultdict(lambda: defaultdict(int))
     fees_data = defaultdict(lambda: defaultdict(int))
 
-    for f in sales_files:
-        path = os.path.join(PROJECT_DIR, f)
+    for path, f in sales_files:
         result = parse_paypay_pdf(path, f)
         if not result:
             continue
@@ -52,8 +56,7 @@ def extract_paypay_sales():
             continue
         sales_data[store][month] += amount
 
-    for f in fee_files:
-        path = os.path.join(PROJECT_DIR, f)
+    for path, f in fee_files:
         result = parse_paypay_pdf(path, f)
         if not result:
             continue

@@ -80,15 +80,15 @@ PAYPAY_MID_TO_STORE = {s["paypay_mid"]: s["name"] for s in STORES if s["paypay_m
 # ============ オリコCSV → 支払月マッピング ============
 # ファイルパスと対応する支払月
 ORICO_CSV_FILES = [
-    ("/mnt/project/24_オリコクレジットCSV.csv", "2025/08"),
-    ("/mnt/project/128_オリコクレジットCSV.csv", "2025/10"),
-    ("/mnt/project/184_20251127_オリコクレジットCSV.csv", "2025/11"),
-    ("/mnt/project/270_20251229_オリコクレジットCSV.csv", "2025/12"),
-    ("/mnt/project/336_20260127_オリコクレジットCSV.csv", "2026/01"),
-    ("/mnt/project/408_20260227_オリコクレジットCSV.csv", "2026/02"),
-    ("/mnt/project/472_20260327_オリコクレジットCSV.csv", "2026/03"),
-    ("/mnt/project/549_20260427_オリコクレジットCSV.csv", "2026/04"),
-    ("/mnt/project/618_オリコクレジットCSV.csv", "2026/05"),
+    ("/mnt/project/FY2026/24_オリコクレジットCSV.csv", "2025/08"),
+    ("/mnt/project/FY2026/128_オリコクレジットCSV.csv", "2025/10"),
+    ("/mnt/project/FY2026/184_20251127_オリコクレジットCSV.csv", "2025/11"),
+    ("/mnt/project/FY2026/270_20251229_オリコクレジットCSV.csv", "2025/12"),
+    ("/mnt/project/FY2026/336_20260127_オリコクレジットCSV.csv", "2026/01"),
+    ("/mnt/project/FY2026/408_20260227_オリコクレジットCSV.csv", "2026/02"),
+    ("/mnt/project/FY2026/472_20260327_オリコクレジットCSV.csv", "2026/03"),
+    ("/mnt/project/FY2026/549_20260427_オリコクレジットCSV.csv", "2026/04"),
+    ("/mnt/project/FY2026/618_オリコクレジットCSV.csv", "2026/05"),
     # 2025/09 は未提供、追加時ここに記載
 ]
 
