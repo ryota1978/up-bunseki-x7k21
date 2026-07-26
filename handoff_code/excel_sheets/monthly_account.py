@@ -55,7 +55,10 @@ def create_sheet(wb, records, cc=None):
     data_ref = Reference(ws, min_col=2, min_row=hdr, max_col=1 + len(TARGET_MONTHS),
                          max_row=last)
     cats = Reference(ws, min_col=1, min_row=first, max_row=last)
-    chart.add_data(data_ref, titles_from_data=True, from_rows=True)
+    # 列方向（月ごとに1系列）で読む。カテゴリ軸は勘定科目（行）なので
+    # from_rows=True にすると系列とタイトルが取り違わる（ヘッダー行が
+    # そのまま1系列として混入してしまう）。
+    chart.add_data(data_ref, titles_from_data=True)
     chart.set_categories(cats)
     ws.add_chart(chart, f"A{total_row + 3}")
 
