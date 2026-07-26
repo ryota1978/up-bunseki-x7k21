@@ -9,6 +9,7 @@ import re
 from collections import defaultdict
 
 from openpyxl.chart import BarChart, Reference
+from openpyxl.utils import get_column_letter
 
 from config import TARGET_MONTHS
 from ._common import (
@@ -103,6 +104,6 @@ def create_sheet(wb, records, cc=None):
         "• Airペイ系は全店舗合算・店舗別が混在しており、店舗単位の分解はできていません",
     ])
 
-    set_widths(ws, {"A": 26, **{chr(ord("B") + i): 13 for i in range(len(TARGET_MONTHS) + 1)}})
+    set_widths(ws, {"A": 26, **{get_column_letter(2 + i): 13 for i in range(len(TARGET_MONTHS) + 1)}})
     ws.freeze_panes = "B5"
     return ws

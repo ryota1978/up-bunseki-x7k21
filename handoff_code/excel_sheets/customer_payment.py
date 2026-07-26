@@ -10,6 +10,7 @@ from collections import defaultdict
 
 from openpyxl.chart import BarChart, PieChart, Reference
 from openpyxl.chart.label import DataLabelList
+from openpyxl.utils import get_column_letter
 
 from config import TARGET_MONTHS, STORES
 from ._common import (
@@ -132,11 +133,13 @@ def create_sheet(wb, records, cc=None, paypay=None):
             c.number_format = YEN
             c.font = NORMAL_FONT
             c.border = BORDER
-        c = ws.cell(row=rr, column=ncol + 1, value=f"=SUM(B{rr}:K{rr})")
+        c = ws.cell(row=rr, column=ncol + 1,
+                    value=f"=SUM(B{rr}:{get_column_letter(ncol)}{rr})")
         c.number_format = YEN
         c.font = BOLD_FONT
         c.border = BORDER
-        c = ws.cell(row=rr, column=ncol + 2, value=f"=ROUND(L{rr}/{len(TARGET_MONTHS)},0)")
+        c = ws.cell(row=rr, column=ncol + 2,
+                    value=f"=ROUND({get_column_letter(ncol + 1)}{rr}/{len(TARGET_MONTHS)},0)")
         c.number_format = YEN
         c.font = NORMAL_FONT
         c.border = BORDER
@@ -148,7 +151,7 @@ def create_sheet(wb, records, cc=None, paypay=None):
     ws.cell(row=pp_total_row, column=1).fill = SUBHEADER_FILL
     ws.cell(row=pp_total_row, column=1).border = BORDER
     for j in range(2, ncol + 3):
-        col = chr(ord("A") + j - 1)
+        col = get_column_letter(j)
         c = ws.cell(row=pp_total_row, column=j, value=f"=SUM({col}{pp_first}:{col}{pp_last})")
         c.number_format = YEN
         c.font = BOLD_FONT
@@ -207,7 +210,7 @@ def create_sheet(wb, records, cc=None, paypay=None):
     pie.set_categories(pc)
     pie.dataLabels = DataLabelList()
     pie.dataLabels.showPercent = True
-    ws.add_chart(pie, f"L{fr + 3}")
+    ws.add_chart(pie, f"{get_column_letter(ncol + 4)}{fr + 3}")
 
     # ---------- 対象期間外データ（ファイル名の年誤り疑い） ----------
     oor = find_out_of_range(paypay)
@@ -267,7 +270,6 @@ def create_sheet(wb, records, cc=None, paypay=None):
     ]
     note_block(ws, orow + 2, [n for n in notes if n != ""] or [""])
 
-    set_widths(ws, {"A": 34, "B": 13, "C": 13, "D": 13, "E": 13, "F": 13,
-                    "G": 13, "H": 13, "I": 13, "J": 13, "K": 13, "L": 14, "M": 13})
+    set_widths(ws, {"A": 34, **{get_column_letter(j): 13 for j in range(2, ncol + 3)}})
     ws.freeze_panes = "B5"
     return ws

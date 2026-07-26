@@ -8,6 +8,7 @@
 from collections import defaultdict
 
 from openpyxl.chart import BarChart, Reference
+from openpyxl.utils import get_column_letter
 
 from config import TARGET_MONTHS
 from ._common import (
@@ -58,6 +59,6 @@ def create_sheet(wb, records, cc=None):
     chart.set_categories(cats)
     ws.add_chart(chart, f"A{total_row + 3}")
 
-    set_widths(ws, {"A": 20, **{chr(ord("B") + i): 13 for i in range(len(TARGET_MONTHS) + 1)}})
+    set_widths(ws, {"A": 20, **{get_column_letter(2 + i): 13 for i in range(len(TARGET_MONTHS) + 1)}})
     ws.freeze_panes = "B5"
     return ws
