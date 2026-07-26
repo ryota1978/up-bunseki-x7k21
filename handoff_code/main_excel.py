@@ -81,6 +81,12 @@ def load_data():
     if os.path.exists(amazon_path):
         with open(amazon_path, encoding="utf-8") as f:
             amazon = json.load(f)
+        # ファイル名の年月誤りは all_records_v5.json 側と同じ補正を適用する。
+        # （amazon_products_v3.json は抽出時の生データとして保持し、
+        #   補正は読み込み時に一元的に当てる）
+        from amount_corrections import apply_date_correction
+        for _a in amazon:
+            _a["month"] = apply_date_correction(_a.get("filename", ""), _a.get("month"))
     else:
         print(f"⚠️  {amazon_path} が見つかりません。Amazon関連シートは限定的な内容になります。")
     return records, cc, paypay, amazon

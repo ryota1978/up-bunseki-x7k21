@@ -29,13 +29,20 @@ def extract_date_from_filename(filename):
         "224_20251201_..." → 2025/12
         "9月分" → None（月不明）
 
+    ファイル名の年月そのものが誤っている既知のファイルについては、
+    amount_corrections.FILENAME_DATE_CORRECTIONS でファイル名の完全一致
+    により上書きする（正規表現の挙動自体は変更しない）。
+
     Returns:
         "YYYY/MM" 形式の文字列、または None
     """
+    from amount_corrections import apply_date_correction
+
     m = re.search(r"(20\d{2})(\d{2})(\d{2})", filename)
-    if m:
-        return f"{m.group(1)}/{m.group(2)}"
-    return None
+    month = f"{m.group(1)}/{m.group(2)}" if m else None
+
+    # 既知のファイル名誤り（年の打ち間違い等）を上書き
+    return apply_date_correction(filename, month)
 
 
 def extract_amount_from_filename(filename):

@@ -44,6 +44,43 @@ SPECIAL_CORRECTIONS = {
 }
 
 
+# ============ ファイル名の年月誤り補正 ============
+# ファイル名に打ち間違えた年が入っており、そのままだと TARGET_MONTHS の
+# 範囲外に落ちて金額が黙って欠落するケースを補正する。
+#
+# 414/415 は 2026/02 分の PayPay 明細だが、ファイル名の年が "2025" に
+# なっている（同じバッチの 416〜419 は正しく "20260201"）。
+# 元ファイル（Dropbox）はリネームせず、パイプライン側で上書きする。
+# 486 はファイル名の数字が9桁（"202600302"）で、正規表現が
+# 2026 + 00 + 30 と読むため月が "2026/00" という不正な値になる。
+# Dropbox上は 3月 フォルダに格納されており、前後の 480〜485 も
+# 20260331、後続の 487/488 も3月分。数字も "0302"（3月2日）と読める。
+FILENAME_DATE_CORRECTIONS = {
+    "414_20250201_paypay_9525.pdf": "2026/02",
+    "415_20250201_paypay利用料_1626.pdf": "2026/02",
+    "486_202600302_amzon_2241.pdf": "2026/03",
+}
+
+
+def apply_date_correction(filename, extracted_month):
+    """
+    ファイル名から抽出した月度に、既知の誤りがあれば補正を適用する。
+
+    金額補正（apply_corrections）と同じく、ファイル名の完全一致でのみ
+    上書きする。該当しないファイルは抽出結果をそのまま返す。
+
+    Args:
+        filename: ファイル名
+        extracted_month: 正規表現で抽出した "YYYY/MM" または None
+
+    Returns:
+        補正後の "YYYY/MM" または元の値
+    """
+    if filename in FILENAME_DATE_CORRECTIONS:
+        return FILENAME_DATE_CORRECTIONS[filename]
+    return extracted_month
+
+
 def apply_corrections(filename, extracted_amount):
     """
     ファイル名を見て、必要な補正を適用する。
