@@ -250,6 +250,21 @@ def create_sheet(wb, records, cc):
     )
     ws.conditional_formatting.add(f"E11:E{10 + len(sorted_r)}", bar_rule)
 
+    # 支払先シェアの円グラフ（上位15社。それ以下は円が潰れるため除外）
+    top_n = min(15, len(sorted_r))
+    if top_n:
+        pie = PieChart()
+        pie.title = f"支払先シェア（上位{top_n}社）"
+        pie.height = 12
+        pie.width = 16
+        pdata = Reference(ws, min_col=5, min_row=11, max_row=10 + top_n)
+        pcats = Reference(ws, min_col=2, min_row=11, max_row=10 + top_n)
+        pie.add_data(pdata, titles_from_data=False)
+        pie.set_categories(pcats)
+        pie.dataLabels = DataLabelList()
+        pie.dataLabels.showPercent = True
+        ws.add_chart(pie, f"B{12 + len(sorted_r)}")
+
     # 列幅
     ws.column_dimensions["A"].width = 6
     ws.column_dimensions["B"].width = 28

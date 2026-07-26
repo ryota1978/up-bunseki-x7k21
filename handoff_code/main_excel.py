@@ -2,12 +2,14 @@
 ステップ3: Excel成果物生成
 
 このスクリプトを実行すると:
-  - 中間データJSON（all_records_v5.json, all_cc_v4.json, paypay_sales.json）を読み込み
-  - 19シート構成の分析Excelを生成
+  - 中間データJSON（all_records_v5.json, all_cc_v4.json, paypay_sales.json,
+    amazon_products_v3.json）を読み込み
+  - config.SHEET_ORDER に定義された20シート構成の分析Excelを生成
   - /mnt/user-data/outputs/経費分類ベース_2025年8月-2026年5月_完全版.xlsx を保存
 
-このファイルは骨組みのみ。各シートの詳細な生成関数は
-excel_sheets/ サブディレクトリに分割することを推奨。
+各シートの生成関数は excel_sheets/ サブディレクトリに1シート1モジュールで分割している。
+新しいシートを足すときは、excel_sheets/ にモジュールを追加し、
+下の SHEET_BUILDERS に登録して config.SHEET_ORDER に名前を入れること。
 """
 
 import os
@@ -26,6 +28,25 @@ from openpyxl.utils import get_column_letter
 from config import (
     WORK_DIR, OUTPUT_XLSX, TARGET_MONTHS, STORES, SHEET_ORDER, STYLE
 )
+
+# ============ 詳細シート生成モジュール ============
+from excel_sheets import vendor_dashboard
+from excel_sheets import monthly_account
+from excel_sheets import sales_analysis
+from excel_sheets import customer_payment
+from excel_sheets import credit_analysis
+from excel_sheets import comm_breakdown
+from excel_sheets import ntt_reduction
+from excel_sheets import insurance_breakdown
+from excel_sheets import travel_breakdown
+from excel_sheets import entertainment_breakdown
+from excel_sheets import electric_by_store
+from excel_sheets import electric_reduction
+from excel_sheets import supplies_breakdown
+from excel_sheets import amazon_analysis
+from excel_sheets import bulk_purchase
+from excel_sheets import shortage_mailing
+from excel_sheets import legend_guide
 
 
 # ============ 共通スタイル ============
@@ -54,7 +75,15 @@ def load_data():
     if os.path.exists(paypay_path):
         with open(paypay_path, encoding="utf-8") as f:
             paypay = json.load(f)
-    return records, cc, paypay
+    # Amazon商品明細（Dropbox上の領収書PDFから抽出）。無くても他シートは生成できる。
+    amazon = []
+    amazon_path = os.path.join(WORK_DIR, "amazon_products_v3.json")
+    if os.path.exists(amazon_path):
+        with open(amazon_path, encoding="utf-8") as f:
+            amazon = json.load(f)
+    else:
+        print(f"⚠️  {amazon_path} が見つかりません。Amazon関連シートは限定的な内容になります。")
+    return records, cc, paypay, amazon
 
 
 def create_dashboard_sheet(wb, records, cc):
@@ -230,12 +259,39 @@ def apply_sheet_order(wb):
             wb.move_sheet(name, offset=idx - cur)
 
 
+# ============ シート生成の登録表 ============
+# (シート名, 生成関数, 必要な引数名のタプル)
+# 引数名は "records" / "cc" / "paypay" / "amazon" のいずれか。
+SHEET_BUILDERS = [
+    ("支払先ダッシュボード", vendor_dashboard.create_sheet, ("records", "cc")),
+    ("月別科目集計", monthly_account.create_sheet, ("records", "cc")),
+    ("売上分析", sales_analysis.create_sheet, ("records", "cc")),
+    ("お客様決済_店舗別売上", customer_payment.create_sheet, ("records", "cc", "paypay")),
+    ("クレジット分析", credit_analysis.create_sheet, ("records", "cc")),
+    ("通信費_内訳分析", comm_breakdown.create_sheet, ("records", "cc")),
+    ("NTT料金_削減提案", ntt_reduction.create_sheet, ("records", "cc")),
+    ("保険料_内訳分析", insurance_breakdown.create_sheet, ("records", "cc")),
+    ("旅費交通費_内訳分析", travel_breakdown.create_sheet, ("records", "cc")),
+    ("接待交際費_内訳分析", entertainment_breakdown.create_sheet, ("records", "cc")),
+    ("電気代_店舗別分析", electric_by_store.create_sheet, ("records", "cc")),
+    ("電気代_削減シミュレーション", electric_reduction.create_sheet, ("records", "cc")),
+    ("消耗品_内訳分析", supplies_breakdown.create_sheet, ("records", "cc")),
+    ("Amazon購入分析", amazon_analysis.create_sheet, ("records", "cc", "amazon")),
+    ("まとめ買い候補", bulk_purchase.create_sheet, ("records", "cc", "amazon")),
+    ("不足薬郵送_在庫指標", shortage_mailing.create_sheet, ("records", "cc")),
+    ("凡例_運用ガイド", legend_guide.create_sheet, ("records", "cc")),
+]
+
+
 def main():
     print("=" * 60)
     print("STEP 3: Excel生成")
     print("=" * 60)
 
-    records, cc, paypay = load_data()
+    records, cc, paypay, amazon = load_data()
+    ctx = {"records": records, "cc": cc, "paypay": paypay, "amazon": amazon}
+    print(f"読込: 領収書{len(records)}件 / クレジット{len(cc)}件 / "
+          f"Amazon領収書{len(amazon)}件")
 
     # 新規Workbookでスタート（既存Excelを上書き）
     wb = Workbook()
@@ -243,14 +299,24 @@ def main():
     if "Sheet" in wb.sheetnames:
         del wb["Sheet"]
 
-    # 基本シート作成（骨組み）
-    print("シート作成中...")
+    # 基本シート作成
+    print("\nシート作成中...")
     create_dashboard_sheet(wb, records, cc)
+    print("  ✓ ダッシュボード")
     create_journal_sheet(wb, records)
+    print("  ✓ 仕訳明細")
     create_credit_sheet(wb, cc)
+    print("  ✓ クレジット明細_オリコ")
 
-    # 他のシートは詳細な生成関数を別途実装
-    # excel_sheets/dashboard.py, expense.py, payment.py, ...
+    # 詳細シート（excel_sheets/ の各モジュール）
+    failures = []
+    for name, builder, argnames in SHEET_BUILDERS:
+        try:
+            builder(wb, *[ctx[a] for a in argnames])
+            print(f"  ✓ {name}")
+        except Exception as e:
+            failures.append((name, e))
+            print(f"  ✗ {name}: {type(e).__name__}: {e}")
 
     # シート順を整える
     apply_sheet_order(wb)
@@ -259,6 +325,19 @@ def main():
     os.makedirs(os.path.dirname(OUTPUT_XLSX), exist_ok=True)
     wb.save(OUTPUT_XLSX)
     print(f"\n✅ 保存: {OUTPUT_XLSX}")
+
+    # シート網羅チェック
+    missing = [s for s in SHEET_ORDER if s not in wb.sheetnames]
+    extra = [s for s in wb.sheetnames if s not in SHEET_ORDER]
+    print(f"シート数: {len(wb.sheetnames)} / SHEET_ORDER: {len(SHEET_ORDER)}")
+    if missing:
+        print(f"⚠️  未生成: {missing}")
+    if extra:
+        print(f"⚠️  SHEET_ORDER外: {extra}")
+    if failures:
+        print(f"⚠️  生成失敗 {len(failures)}件")
+    if not missing and not extra and not failures:
+        print("✅ SHEET_ORDER の全シートを生成しました")
 
     # 数式検証
     verify_formulas()
