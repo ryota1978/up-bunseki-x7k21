@@ -43,7 +43,7 @@ create table if not exists tasks (
 create index if not exists tasks_member_id_idx on tasks(member_id);
 
 -- Row Level Security
--- このアプリは「合言葉」の画面（アプリ側）でアクセスを制限しています。
+-- このアプリはURLを知っている人であれば誰でも読み書きできる構成です。
 -- Supabase側はシンプルな構成にするため、読み書きは許可する設定にしています。
 alter table members enable row level security;
 alter table tasks enable row level security;

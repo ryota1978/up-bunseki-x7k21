@@ -1,24 +1,9 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE, gateToken } from "@/lib/auth";
 import { STORES } from "@/lib/constants";
 
 type MemberLite = { id: string; store: string; person: string };
 
-async function isAuthed(req: Request): Promise<boolean> {
-  const passphrase = process.env.APP_PASSPHRASE || "";
-  if (!passphrase) return true; // 未設定時はミドルウェアと同じ扱い
-  const cookieHeader = req.headers.get("cookie") || "";
-  const match = cookieHeader.match(new RegExp(`${AUTH_COOKIE}=([^;]+)`));
-  if (!match) return false;
-  const expected = await gateToken(passphrase);
-  return decodeURIComponent(match[1]) === expected;
-}
-
 export async function POST(req: Request) {
-  if (!(await isAuthed(req))) {
-    return NextResponse.json({ ok: false, message: "ログインが必要です。" }, { status: 401 });
-  }
-
   let text = "";
   let members: MemberLite[] = [];
   try {

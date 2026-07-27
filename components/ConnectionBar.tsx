@@ -36,7 +36,7 @@ export default function ConnectionBar({
           <div style={{ fontSize: 11, color: C.sub, marginTop: 1 }}>通信環境をご確認ください。自動で再接続します</div>
         )}
       </div>
-      <Link href="/login?step=name" style={{ ...miniBtn, textDecoration: "none", background: C.surface }} title="自分の名前を変更">
+      <Link href="/login" style={{ ...miniBtn, textDecoration: "none", background: C.surface }} title="自分の名前を変更">
         <UserCircle size={13} /> {me || "名前を選ぶ"}
       </Link>
     </div>
