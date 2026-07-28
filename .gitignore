@@ -1,0 +1,10 @@
+# 個人情報・機密情報を含む実データ（テンプレートは company_secrets_example.py を参照）
+keihi-bunrui/company_secrets.py
+
+# Python
+__pycache__/
+*.pyc
+
+# 経費分類の中間データ・成果物（機密のため git 管理外。出力先はローカル/Dropboxで管理）
+keihi-bunrui/output/
+keihi-bunrui/work/

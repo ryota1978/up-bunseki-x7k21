@@ -1,0 +1,88 @@
+"""
+経費分類システム 設定ファイル
+
+このファイルには機密性のない定数・マッピングを集約。
+会社名・代表者・住所・インボイス番号・店舗の薬剤師名・PayPay加盟店ID・
+保険契約情報などの実データは company_secrets.py（git管理外）に分離している。
+company_secrets.py が無い場合は company_secrets.example.py のダミー値で動く。
+"""
+
+try:
+    from company_secrets import COMPANY, STORES
+except ImportError:
+    print("[警告] company_secrets.py が見つからないため company_secrets.example.py のダミー値を使用します。")
+    from company_secrets_example import COMPANY, STORES  # noqa: F401
+
+# ============ ディレクトリ ============
+PROJECT_DIR = "/mnt/project"
+WORK_DIR = "/home/claude/work"
+OUTPUT_DIR = "/mnt/user-data/outputs"
+OUTPUT_XLSX = f"{OUTPUT_DIR}/経費分類ベース_2025年8月-2026年5月_完全版.xlsx"
+
+# ============ 対象期間 ============
+TARGET_MONTHS = [
+    "2025/08", "2025/09", "2025/10", "2025/11", "2025/12",
+    "2026/01", "2026/02", "2026/03", "2026/04", "2026/05"
+]
+
+# PayPay MID → 店舗名 マッピング
+PAYPAY_MID_TO_STORE = {s["paypay_mid"]: s["name"] for s in STORES if s["paypay_mid"]}
+
+# ============ オリコCSV → 支払月マッピング ============
+# ファイルパスと対応する支払月
+ORICO_CSV_FILES = [
+    ("/mnt/project/24_オリコクレジットCSV.csv", "2025/08"),
+    ("/mnt/project/128_オリコクレジットCSV.csv", "2025/10"),
+    ("/mnt/project/184_20251127_オリコクレジットCSV.csv", "2025/11"),
+    ("/mnt/project/270_20251229_オリコクレジットCSV.csv", "2025/12"),
+    ("/mnt/project/336_20260127_オリコクレジットCSV.csv", "2026/01"),
+    ("/mnt/project/408_20260227_オリコクレジットCSV.csv", "2026/02"),
+    ("/mnt/project/472_20260327_オリコクレジットCSV.csv", "2026/03"),
+    ("/mnt/project/20260427_オリコクレジットCSV.csv", "2026/04"),
+    # 2025/09 は未提供、追加時ここに記載
+]
+
+# ============ 家族カード利用ルール ============
+FAMILY_CARD_RULES = {
+    # キーワード → 事業/私的判定
+    "ガソリン系（コスモ・アポロ等）": "事業",
+    "ETC系": "事業",
+    "食事系（レストラン等）": "私的",
+    "自宅水道光熱": "私的",
+}
+
+# ============ Excelスタイル定数 ============
+STYLE = {
+    "primary_color": "305496",      # 濃紺（ヘッダー）
+    "accent_color": "C00000",       # 赤（強調）
+    "warning_color": "FFF2CC",      # 黄（注意）
+    "success_color": "00B050",      # 緑（削減額）
+    "sub_header": "D9E1F2",         # 薄青（サブヘッダー）
+    "urihi_fill": "FCE4D6",         # 売上のセル
+    "font_normal": "メイリオ",
+    "font_code": "Consolas",
+}
+
+# ============ Excel シート順 ============
+SHEET_ORDER = [
+    "ダッシュボード",
+    "支払先ダッシュボード",
+    "月別科目集計",
+    "売上分析",
+    "お客様決済_店舗別売上",
+    "クレジット分析",
+    "通信費_内訳分析",
+    "NTT料金_削減提案",
+    "保険料_内訳分析",
+    "旅費交通費_内訳分析",
+    "接待交際費_内訳分析",
+    "電気代_店舗別分析",
+    "電気代_削減シミュレーション",
+    "消耗品_内訳分析",
+    "Amazon購入分析",
+    "まとめ買い候補",
+    "不足薬郵送_在庫指標",
+    "仕訳明細",
+    "クレジット明細_オリコ",
+    "凡例_運用ガイド",
+]
