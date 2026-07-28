@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "unit": "円",
+    "stores": ["shima", "izawa", "jinkyu", "okamoto"],
+    "store_names": {
+      "shima": "志摩(ひかり調剤薬局)",
+      "izawa": "射和(ひかり薬局)",
+      "jinkyu": "神久(ひかりファーマシー)",
+      "okamoto": "岡本(ひかりハート薬局)"
+    },
+    "baseline_period": "2025-05-01..2026-04-30",
+    "kaitei_impact_yearly_total": -1157000,
+    "source_chat": "https://claude.ai/share/9a3e3b38-fca8-4302-8623-69d909dc14b6",
+    "handoff_doc": "docs/kaitei_handoff.md"
+  },
+  "baseline_fy2025": {
+    "shima":   {"kihon_n": 11352, "kihon_yen": 13622590, "naifuku_short_n": 4984, "naifuku_short_yen": 819980, "naifuku_28p_n": 15863, "naifuku_28p_yen": 8976300, "kakaritsuke_n": 1728, "dx_n": 8693, "dx_yen": 521580, "zanyaku_yugai_n": 47, "joho_n": 76, "tokuyaku_n": 252, "kyunyu_n": 14, "shohousen": 11471, "gijutsu_yen": 43371110},
+    "izawa":   {"kihon_n": 14557, "kihon_yen": 17496650, "naifuku_short_n": 17302, "naifuku_short_yen": 2119860, "naifuku_28p_n": 13103, "naifuku_28p_yen": 6929800, "kakaritsuke_n": 2857, "dx_n": 8393, "dx_yen": 572880, "zanyaku_yugai_n": 100, "joho_n": 34, "tokuyaku_n": 154, "kyunyu_n": null, "shohousen": 14604, "gijutsu_yen": 48447620},
+    "jinkyu":  {"kihon_n": 14517, "kihon_yen": 17414100, "naifuku_short_n": 3557, "naifuku_short_yen": 558060, "naifuku_28p_n": 20872, "naifuku_28p_yen": 11526100, "kakaritsuke_n": 964, "dx_n": 12549, "dx_yen": 921260, "zanyaku_yugai_n": 35, "joho_n": 43, "tokuyaku_n": 5, "kyunyu_n": 7, "shohousen": 14590, "gijutsu_yen": 51246040},
+    "okamoto": {"kihon_n": 11775, "kihon_yen": 12364190, "naifuku_short_n": 4365, "naifuku_short_yen": 467300, "naifuku_28p_n": 14232, "naifuku_28p_yen": 8459000, "kakaritsuke_n": 437, "dx_n": 10093, "dx_yen": 691060, "zanyaku_yugai_n": 179, "joho_n": 10, "tokuyaku_n": 279, "kyunyu_n": 289, "shohousen": 11637, "gijutsu_yen": 39314180}
+  },
+  "monthly": {
+    "2026-06": {
+      "shima":   {"kihon_n": 966, "kihon_yen": 1149360, "n27_n": 592, "n27_yen": 59700, "n28_n": 1156, "n28_yen": 693600, "kakaritsuke1i_n": 114, "dx_n": 743, "dx_yen": 59440, "zanyaku_n": 0, "yugai_n": 13, "yugai_yen": 5700, "joho_n": 12, "joho_yen": 2400, "tokuyaku_n": 23, "tokuyaku_yen": 1750, "kyunyu_n": 0, "followup_n": 0, "homon_n": 0, "bukka_n": 737, "bukka_yen": 7370, "rece": 828, "uketsuke": 971, "shohousen": 976, "gijutsu_yen": 3582800},
+      "izawa":   {"kihon_n": 1367, "kihon_yen": 1626010, "n27_n": 1766, "n27_yen": 177600, "n28_n": 1093, "n28_yen": 655800, "kakaritsuke1i_n": 172, "dx_n": 763, "dx_yen": 60240, "zanyaku_n": 19, "zanyaku_yen": 6500, "yugai_n": 9, "yugai_yen": 3300, "joho_n": 4, "joho_yen": 800, "tokuyaku_n": 11, "tokuyaku_yen": 1000, "kyunyu_n": 1, "followup_n": 1, "followup_yen": 500, "homon_n": 0, "bukka_n": 756, "bukka_yen": 7580, "rece": 811, "uketsuke": 1367, "shohousen": 1369, "gijutsu_yen": 4388450},
+      "jinkyu":  {"kihon_n": 1177, "kihon_yen": 1400180, "n27_n": 366, "n27_yen": 37100, "n28_n": 1608, "n28_yen": 964800, "kakaritsuke1i_n": 58, "dx_n": 1027, "dx_yen": 82160, "zanyaku_n": 4, "zanyaku_yen": 1400, "yugai_n": 2, "yugai_yen": 500, "joho_n": 8, "joho_yen": 1600, "tokuyaku_n": 0, "kyunyu_n": 0, "followup_n": 0, "homon_n": 1, "homon_yen": 2300, "bukka_n": 1064, "bukka_yen": 10640, "rece": 1107, "uketsuke": 1213, "shohousen": 1213, "gijutsu_yen": 4209250},
+      "okamoto": {"kihon_n": 991, "kihon_yen": 1178750, "n27_n": 405, "n27_yen": 40500, "n28_n": 1195, "n28_yen": 717000, "kakaritsuke1i_n": 36, "dx_n": 835, "dx_yen": 66900, "zanyaku_n": 0, "yugai_n": 16, "yugai_yen": 5400, "joho_n": 3, "joho_yen": 600, "tokuyaku_n": 32, "tokuyaku_yen": 3000, "kyunyu_n": 12, "kyunyu_yen": 3600, "followup_n": 0, "homon_n": 0, "bukka_n": 851, "bukka_yen": 8610, "rece": 870, "uketsuke": 992, "shohousen": 997, "gijutsu_yen": 3590340}
+    }
+  }
+}
