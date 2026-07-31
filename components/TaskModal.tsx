@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { C, FLAGS } from "@/lib/constants";
 import type { Member, NewTaskInput, Task, VoiceDraft } from "@/lib/types";
-import { hasPerson, memberLine, toKey } from "@/lib/utils";
+import { hasPerson, memberLine, orderMembersForPicker, toKey } from "@/lib/utils";
 import { Field, Modal, QuickBtn, ToggleBox, ghostBtn, inputStyle, primaryBtn } from "@/components/ui";
 
 export function TaskModal({
@@ -30,7 +30,8 @@ export function TaskModal({
 }) {
   const isEdit = mode === "edit";
   const d = draft || null;
-  const initialMember = isEdit ? task!.member_id || "" : (d && d.member_id) || members[0]?.id || "";
+  const orderedMembers = orderMembersForPicker(members);
+  const initialMember = isEdit ? task!.member_id || "" : (d && d.member_id) || orderedMembers[0]?.id || "";
   const [memberId, setMemberId] = useState(initialMember);
   const [title, setTitle] = useState(isEdit ? task!.title || "" : (d && d.title) || "");
   const [content, setContent] = useState(isEdit ? task!.content || "" : (d && d.content) || "");
@@ -89,7 +90,7 @@ export function TaskModal({
 
           <Field label="店舗・担当者">
             <select value={memberId} onChange={(e) => pickMember(e.target.value)} style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}>
-              {members.map((m) => (
+              {orderedMembers.map((m) => (
                 <option key={m.id} value={m.id}>
                   {memberLine(m)}
                 </option>

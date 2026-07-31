@@ -54,6 +54,18 @@ export const hasPerson = (m: Member | null | undefined) => !!(m && m.person && m
 export const memberLine = (m: Member | null | undefined) =>
   !m ? "（削除された店舗）" : hasPerson(m) ? `${m.store}　${m.person}` : m.store;
 
+/** 案件の担当者選択に使う並び順：加藤（代表）→ 助田 → ひかり調剤（鵜方）→ それ以外（登録順） */
+function pickerPriority(m: Member): number {
+  if (m.person.includes("加藤")) return 0;
+  if (m.person === "助田") return 1;
+  if (m.store === "ひかり調剤（鵜方）") return 2;
+  return 3;
+}
+
+export function orderMembersForPicker(members: Member[]): Member[] {
+  return [...members].sort((a, b) => pickerPriority(a) - pickerPriority(b));
+}
+
 export const emptyStoresDone = (): StoresDone =>
   STORES.reduce((o, s) => ({ ...o, [s]: false }), {} as StoresDone);
 
