@@ -24,6 +24,16 @@ export type Task = {
   updated_by: string;
 };
 
+export type Attachment = {
+  id: string;
+  task_id: string;
+  file_name: string;
+  storage_path: string;
+  size_bytes: number;
+  uploaded_by: string;
+  created_at: string;
+};
+
 export type NewMemberInput = {
   store: string;
   person: string;

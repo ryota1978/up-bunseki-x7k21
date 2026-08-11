@@ -143,7 +143,17 @@ function MainApp({ me }: { me: string }) {
   const removeMember = async (id: string) => notify(await data.removeMember(id), "削除しました");
   const restoreDefaults = async () => notify(await data.restoreDefaults(), "呼び戻しました");
 
-  const addTask = async (input: NewTaskInput) => notify(await data.addTask(input), "案件を追加しました");
+  const addTask = async (input: NewTaskInput) => {
+    const r = await data.addTask(input);
+    notify(r, "案件を追加しました");
+    return r.ok ? r.id ?? null : null;
+  };
+  const uploadAttachment = async (taskId: string, file: File) => {
+    const r = await data.addAttachment(taskId, file);
+    notify(r, "添付ファイルを追加しました");
+    return r;
+  };
+  const removeAttachment = async (id: string) => notify(await data.removeAttachment(id), "添付ファイルを削除しました");
   const updateTask = async (id: string, input: NewTaskInput) => notify(await data.updateTask(id, input), "修正を保存しました");
   const setDone = async (id: string, v: boolean) => notify(await data.setDone(id, v), v ? "済にしました" : "未処理に戻しました");
   const toggleStore = async (id: string, store: string) => notify(await data.toggleStoreDone(id, store));
@@ -222,6 +232,10 @@ function MainApp({ me }: { me: string }) {
                 onRemove={removeTask}
                 onToggleFlag={toggleFlag}
                 goMembers={() => setView("members")}
+                attachments={data.attachments}
+                getAttachmentUrl={data.attachmentUrl}
+                onUploadAttachment={uploadAttachment}
+                onRemoveAttachment={removeAttachment}
               />
             ) : (
               <MembersView

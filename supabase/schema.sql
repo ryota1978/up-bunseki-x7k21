@@ -42,17 +42,34 @@ create table if not exists tasks (
 
 create index if not exists tasks_member_id_idx on tasks(member_id);
 
+-- 案件への添付ファイル（実体はSupabase Storageに置き、ここには情報だけを持つ）
+create table if not exists attachments (
+  id uuid primary key default gen_random_uuid(),
+  task_id uuid not null references tasks(id) on delete cascade,
+  file_name text not null,
+  storage_path text not null,
+  size_bytes bigint not null default 0,
+  uploaded_by text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists attachments_task_id_idx on attachments(task_id);
+
 -- Row Level Security
 -- このアプリはURLを知っている人であれば誰でも読み書きできる構成です。
 -- Supabase側はシンプルな構成にするため、読み書きは許可する設定にしています。
 alter table members enable row level security;
 alter table tasks enable row level security;
+alter table attachments enable row level security;
 
 drop policy if exists "members_all" on members;
 create policy "members_all" on members for all using (true) with check (true);
 
 drop policy if exists "tasks_all" on tasks;
 create policy "tasks_all" on tasks for all using (true) with check (true);
+
+drop policy if exists "attachments_all" on attachments;
+create policy "attachments_all" on attachments for all using (true) with check (true);
 
 -- 複数端末での即時反映（Realtime）を有効化
 do $$
@@ -69,7 +86,30 @@ begin
   ) then
     alter publication supabase_realtime add table tasks;
   end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'attachments'
+  ) then
+    alter publication supabase_realtime add table attachments;
+  end if;
 end $$;
+
+-- 添付ファイルの保存先（Storageバケット）を用意する
+insert into storage.buckets (id, name, public)
+values ('task-attachments', 'task-attachments', true)
+on conflict (id) do nothing;
+
+drop policy if exists "task_attachments_read" on storage.objects;
+create policy "task_attachments_read" on storage.objects for select
+  using (bucket_id = 'task-attachments');
+
+drop policy if exists "task_attachments_insert" on storage.objects;
+create policy "task_attachments_insert" on storage.objects for insert
+  with check (bucket_id = 'task-attachments');
+
+drop policy if exists "task_attachments_delete" on storage.objects;
+create policy "task_attachments_delete" on storage.objects for delete
+  using (bucket_id = 'task-attachments');
 
 -- 初期データ（29組）。すでに同じ店舗＋担当者があれば追加しません。
 insert into members (store, person) values

@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { C, FLAGS } from "@/lib/constants";
-import type { Member, NewTaskInput, Task, VoiceDraft } from "@/lib/types";
+import type { Attachment, Member, NewTaskInput, Task, VoiceDraft } from "@/lib/types";
+import type { RetryResult } from "@/lib/retry";
 import { hasPerson, memberLine, orderMembersForPicker, toKey } from "@/lib/utils";
 import { Field, Modal, QuickBtn, ToggleBox, ghostBtn, inputStyle, primaryBtn } from "@/components/ui";
+import { AttachmentsPanel } from "@/components/AttachmentsPanel";
 
 export function TaskModal({
   mode,
@@ -13,6 +15,10 @@ export function TaskModal({
   draft,
   members,
   memberById,
+  attachments,
+  getAttachmentUrl,
+  onUploadAttachment,
+  onRemoveAttachment,
   onClose,
   onAdd,
   onUpdate,
@@ -23,8 +29,12 @@ export function TaskModal({
   draft?: VoiceDraft;
   members: Member[];
   memberById: Record<string, Member | undefined>;
+  attachments: Attachment[];
+  getAttachmentUrl: (path: string) => string;
+  onUploadAttachment: (taskId: string, file: File) => Promise<RetryResult>;
+  onRemoveAttachment: (id: string) => void;
   onClose: () => void;
-  onAdd: (input: NewTaskInput) => void;
+  onAdd: (input: NewTaskInput) => Promise<string | null>;
   onUpdate: (id: string, input: NewTaskInput) => void;
   goMembers: () => void;
 }) {
@@ -40,17 +50,30 @@ export function TaskModal({
   const [jimu, setJimu] = useState(isEdit ? !!task!.jimu : !!(d && d.jimu));
   const [byStore, setByStore] = useState(isEdit ? !!task!.by_store : d ? !!d.by_store : !hasPerson(memberById[initialMember]));
   const [touchedByStore, setTouchedByStore] = useState(isEdit || !!d);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const pickMember = (id: string) => {
     setMemberId(id);
     if (!touchedByStore) setByStore(!hasPerson(memberById[id]));
   };
 
-  const submit = () => {
-    if (!memberId || !title.trim()) return;
+  const submit = async () => {
+    if (!memberId || !title.trim() || submitting) return;
     const payload: NewTaskInput = { member_id: memberId, title: title.trim(), content: content.trim(), due, meeting, jimu, by_store: byStore };
-    if (isEdit) onUpdate(task!.id, payload);
-    else onAdd(payload);
+    if (isEdit) {
+      onUpdate(task!.id, payload);
+      onClose();
+      return;
+    }
+    setSubmitting(true);
+    const newId = await onAdd(payload);
+    if (newId) {
+      for (const file of pendingFiles) {
+        await onUploadAttachment(newId, file);
+      }
+    }
+    setSubmitting(false);
     onClose();
   };
 
@@ -59,6 +82,8 @@ export function TaskModal({
     dt.setDate(dt.getDate() + offset);
     setDue(toKey(dt));
   };
+
+  const taskAttachments = isEdit ? attachments.filter((a) => a.task_id === task!.id) : [];
 
   return (
     <Modal title={isEdit ? "案件を修正" : "案件を追加"} onClose={onClose}>
@@ -117,6 +142,26 @@ export function TaskModal({
             <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={3} placeholder="配布物の内容をメモ" style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5 }} />
           </Field>
 
+          {isEdit ? (
+            <AttachmentsPanel
+              attachments={taskAttachments}
+              getUrl={getAttachmentUrl}
+              onUpload={async (file) => {
+                const r = await onUploadAttachment(task!.id, file);
+                if (!r.ok) throw new Error(r.message);
+              }}
+              onDelete={onRemoveAttachment}
+            />
+          ) : (
+            <AttachmentsPanel
+              attachments={[]}
+              getUrl={getAttachmentUrl}
+              pendingFiles={pendingFiles}
+              onAddPending={(file) => setPendingFiles((p) => [...p, file])}
+              onRemovePending={(i) => setPendingFiles((p) => p.filter((_, idx) => idx !== i))}
+            />
+          )}
+
           <ToggleBox
             on={byStore}
             onClick={() => {
@@ -137,8 +182,8 @@ export function TaskModal({
             <button onClick={onClose} style={ghostBtn}>
               キャンセル
             </button>
-            <button onClick={submit} disabled={!memberId || !title.trim()} style={{ ...primaryBtn, marginLeft: "auto", opacity: !title.trim() ? 0.5 : 1 }}>
-              {isEdit ? "保存する" : "追加する"}
+            <button onClick={submit} disabled={!memberId || !title.trim() || submitting} style={{ ...primaryBtn, marginLeft: "auto", opacity: !title.trim() || submitting ? 0.5 : 1 }}>
+              {submitting ? "追加中…" : isEdit ? "保存する" : "追加する"}
             </button>
           </div>
         </>

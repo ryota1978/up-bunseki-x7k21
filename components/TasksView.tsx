@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { ArrowDownUp, CalendarDays, ChevronRight, Clock, Mic, Package, Plus, Search, Store, User } from "lucide-react";
 import { C, TASK_SORTS, fontStack } from "@/lib/constants";
-import type { FlagKey, Member, NewTaskInput, Task, TaskSortKey, VoiceDraft } from "@/lib/types";
+import type { Attachment, FlagKey, Member, NewTaskInput, Task, TaskSortKey, VoiceDraft } from "@/lib/types";
+import type { RetryResult } from "@/lib/retry";
 import type { TaskGroup } from "@/lib/utils";
 import { SortPill } from "@/components/ui";
 import { DoneCard, TaskCard } from "@/components/TaskCard";
@@ -40,6 +41,10 @@ export function TasksView({
   onRemove,
   onToggleFlag,
   goMembers,
+  attachments,
+  getAttachmentUrl,
+  onUploadAttachment,
+  onRemoveAttachment,
 }: {
   members: Member[];
   memberById: Record<string, Member | undefined>;
@@ -53,7 +58,7 @@ export function TasksView({
   setShowDone: (v: boolean | ((s: boolean) => boolean)) => void;
   q: string;
   setQ: (v: string) => void;
-  onAdd: (input: NewTaskInput) => void;
+  onAdd: (input: NewTaskInput) => Promise<string | null>;
   onUpdate: (id: string, input: NewTaskInput) => void;
   onSetDone: (id: string, v: boolean) => void;
   onToggleStore: (id: string, store: string) => void;
@@ -61,6 +66,10 @@ export function TasksView({
   onRemove: (id: string) => void;
   onToggleFlag: (id: string, key: FlagKey) => void;
   goMembers: () => void;
+  attachments: Attachment[];
+  getAttachmentUrl: (path: string) => string;
+  onUploadAttachment: (taskId: string, file: File) => Promise<RetryResult>;
+  onRemoveAttachment: (id: string) => void;
 }) {
   const [modal, setModal] = useState<ModalState>(null);
 
@@ -162,6 +171,7 @@ export function TasksView({
                     key={t.id}
                     task={t}
                     member={t.member_id ? memberById[t.member_id] : undefined}
+                    attachmentCount={attachments.filter((a) => a.task_id === t.id).length}
                     onSetDone={onSetDone}
                     onToggleStore={onToggleStore}
                     onAllStores={onAllStores}
@@ -188,7 +198,16 @@ export function TasksView({
           {showDone && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
               {doneTasks.map((t) => (
-                <DoneCard key={t.id} task={t} member={t.member_id ? memberById[t.member_id] : undefined} onSetDone={onSetDone} onAllStores={onAllStores} onRemove={onRemove} onToggleFlag={onToggleFlag} />
+                <DoneCard
+                  key={t.id}
+                  task={t}
+                  member={t.member_id ? memberById[t.member_id] : undefined}
+                  attachmentCount={attachments.filter((a) => a.task_id === t.id).length}
+                  onSetDone={onSetDone}
+                  onAllStores={onAllStores}
+                  onRemove={onRemove}
+                  onToggleFlag={onToggleFlag}
+                />
               ))}
             </div>
           )}
@@ -198,7 +217,21 @@ export function TasksView({
       {modal && modal.mode === "voice" && <VoiceModal members={members} onClose={() => setModal(null)} onParsed={(draft) => setModal({ mode: "add", draft })} />}
 
       {modal && (modal.mode === "add" || modal.mode === "edit") && (
-        <TaskModal mode={modal.mode} task={modal.task} draft={modal.draft} members={members} memberById={memberById} onClose={() => setModal(null)} onAdd={onAdd} onUpdate={onUpdate} goMembers={goMembers} />
+        <TaskModal
+          mode={modal.mode}
+          task={modal.task}
+          draft={modal.draft}
+          members={members}
+          memberById={memberById}
+          attachments={attachments}
+          getAttachmentUrl={getAttachmentUrl}
+          onUploadAttachment={onUploadAttachment}
+          onRemoveAttachment={onRemoveAttachment}
+          onClose={() => setModal(null)}
+          onAdd={onAdd}
+          onUpdate={onUpdate}
+          goMembers={goMembers}
+        />
       )}
     </div>
   );

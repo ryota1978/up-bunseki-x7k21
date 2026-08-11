@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, CalendarDays, Check, Pencil, RotateCcw, Store, Trash2, User } from "lucide-react";
+import { AlertTriangle, CalendarDays, Check, Paperclip, Pencil, RotateCcw, Store, Trash2, User } from "lucide-react";
 import { C, FLAGS, STORES, fontStack } from "@/lib/constants";
 import type { FlagKey, Member, Task } from "@/lib/types";
 import { doneStoreList, dueMeta, hasPerson, memberLine } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { FlagCheck } from "@/components/FlagViews";
 export function TaskCard({
   task,
   member,
+  attachmentCount = 0,
   onSetDone,
   onToggleStore,
   onAllStores,
@@ -19,6 +20,7 @@ export function TaskCard({
 }: {
   task: Task;
   member: Member | undefined;
+  attachmentCount?: number;
   onSetDone: (id: string, v: boolean) => void;
   onToggleStore: (id: string, store: string) => void;
   onAllStores: (id: string, v: boolean) => void;
@@ -61,6 +63,11 @@ export function TaskCard({
               {hasPerson(member) && (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12.5, color: C.sub }}>
                   <User size={12} /> {member!.person}
+                </span>
+              )}
+              {attachmentCount > 0 && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: C.sub }}>
+                  <Paperclip size={12} /> {attachmentCount}
                 </span>
               )}
             </div>
@@ -153,6 +160,7 @@ export function TaskCard({
 export function DoneCard({
   task,
   member,
+  attachmentCount = 0,
   onSetDone,
   onAllStores,
   onRemove,
@@ -160,6 +168,7 @@ export function DoneCard({
 }: {
   task: Task;
   member: Member | undefined;
+  attachmentCount?: number;
   onSetDone: (id: string, v: boolean) => void;
   onAllStores: (id: string, v: boolean) => void;
   onRemove: (id: string) => void;
@@ -203,7 +212,14 @@ export function DoneCard({
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <Stamp />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{task.title || "（無題）"}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{task.title || "（無題）"}</div>
+            {attachmentCount > 0 && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 11.5, color: C.sub, flexShrink: 0 }}>
+                <Paperclip size={11} /> {attachmentCount}
+              </span>
+            )}
+          </div>
           <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>{memberLine(member)}</div>
         </div>
         <button onClick={undo} style={{ ...ghostBtn, padding: "6px 10px", fontSize: 12 }} title="未処理に戻す">

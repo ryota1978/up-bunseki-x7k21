@@ -5,7 +5,10 @@ import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { DEFAULT_MEMBERS, STORES } from "@/lib/constants";
 import { emptyStoresDone } from "@/lib/utils";
 import { withRetry, type RetryResult } from "@/lib/retry";
-import type { Member, NewMemberInput, NewTaskInput, StoresDone, Task } from "@/lib/types";
+import type { Attachment, Member, NewMemberInput, NewTaskInput, StoresDone, Task } from "@/lib/types";
+
+const ATTACHMENTS_BUCKET = "task-attachments";
+export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10MB
 
 function upsertById<T extends { id: string }>(list: T[], row: T): T[] {
   const idx = list.findIndex((x) => x.id === row.id);
@@ -18,6 +21,7 @@ function upsertById<T extends { id: string }>(list: T[], row: T): T[] {
 export function useAppData(me: string) {
   const [members, setMembers] = useState<Member[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [connection, setConnection] = useState<"connecting" | "online" | "offline">("connecting");
   const meRef = useRef(me);
@@ -31,12 +35,14 @@ export function useAppData(me: string) {
       setConnection("offline");
       return;
     }
-    const [{ data: m, error: me1 }, { data: t, error: te1 }] = await Promise.all([
+    const [{ data: m, error: me1 }, { data: t, error: te1 }, { data: a, error: ae1 }] = await Promise.all([
       supabase.from("members").select("*").order("created_at", { ascending: true }),
       supabase.from("tasks").select("*").order("created_at", { ascending: true }),
+      supabase.from("attachments").select("*").order("created_at", { ascending: true }),
     ]);
     if (!me1 && m) setMembers(m as Member[]);
     if (!te1 && t) setTasks(t as Task[]);
+    if (!ae1 && a) setAttachments(a as Attachment[]);
     setLoaded(true);
   }, []);
 
@@ -62,6 +68,13 @@ export function useAppData(me: string) {
           setTasks((prev) => prev.filter((x) => x.id !== (payload.old as Task).id));
         } else {
           setTasks((prev) => upsertById(prev, payload.new as Task));
+        }
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "attachments" }, (payload) => {
+        if (payload.eventType === "DELETE") {
+          setAttachments((prev) => prev.filter((x) => x.id !== (payload.old as Attachment).id));
+        } else {
+          setAttachments((prev) => upsertById(prev, payload.new as Attachment));
         }
       })
       .subscribe((status) => {
@@ -126,8 +139,9 @@ export function useAppData(me: string) {
   }, [members]);
 
   /* ── 案件操作 ── */
-  const addTask = useCallback(async (input: NewTaskInput): Promise<RetryResult> => {
-    return withRetry(async () => {
+  const addTask = useCallback(async (input: NewTaskInput): Promise<RetryResult & { id?: string }> => {
+    let newId: string | undefined;
+    const result = await withRetry(async () => {
       const { data, error } = await supabase
         .from("tasks")
         .insert({
@@ -146,8 +160,10 @@ export function useAppData(me: string) {
         .select()
         .single();
       if (error) throw new Error(error.message);
+      newId = (data as Task).id;
       setTasks((prev) => upsertById(prev, data as Task));
     });
+    return { ...result, id: newId };
   }, []);
 
   const updateTask = useCallback(async (id: string, patch: Partial<NewTaskInput>): Promise<RetryResult> => {
@@ -244,12 +260,61 @@ export function useAppData(me: string) {
     });
   }, []);
 
-  const removeTask = useCallback(async (id: string): Promise<RetryResult> => {
+  const removeTask = useCallback(
+    async (id: string): Promise<RetryResult> => {
+      return withRetry(async () => {
+        const paths = attachments.filter((a) => a.task_id === id).map((a) => a.storage_path);
+        if (paths.length > 0) {
+          await supabase.storage.from(ATTACHMENTS_BUCKET).remove(paths);
+        }
+        const { error } = await supabase.from("tasks").delete().eq("id", id);
+        if (error) throw new Error(error.message);
+        setTasks((prev) => prev.filter((t) => t.id !== id));
+        setAttachments((prev) => prev.filter((a) => a.task_id !== id));
+      });
+    },
+    [attachments]
+  );
+
+  /* ── 添付ファイル ── */
+  const addAttachment = useCallback(async (taskId: string, file: File): Promise<RetryResult> => {
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      return { ok: false, message: "ファイルが大きすぎます（10MBまで）。別のファイルをお試しください。" };
+    }
     return withRetry(async () => {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      const safeName = file.name.replace(/[^\w.\-ぁ-んァ-ヶ一-龠々ー]/g, "_");
+      const path = `${taskId}/${Date.now()}-${safeName}`;
+      const { error: upErr } = await supabase.storage.from(ATTACHMENTS_BUCKET).upload(path, file, { upsert: false });
+      if (upErr) throw new Error(upErr.message);
+      const { data, error } = await supabase
+        .from("attachments")
+        .insert({
+          task_id: taskId,
+          file_name: file.name,
+          storage_path: path,
+          size_bytes: file.size,
+          uploaded_by: meRef.current,
+        })
+        .select()
+        .single();
       if (error) throw new Error(error.message);
-      setTasks((prev) => prev.filter((t) => t.id !== id));
+      setAttachments((prev) => upsertById(prev, data as Attachment));
     });
+  }, []);
+
+  const removeAttachment = useCallback(async (id: string): Promise<RetryResult> => {
+    const current = attachments.find((a) => a.id === id);
+    if (!current) return { ok: false, message: "対象の添付ファイルが見つかりませんでした。" };
+    return withRetry(async () => {
+      await supabase.storage.from(ATTACHMENTS_BUCKET).remove([current.storage_path]);
+      const { error } = await supabase.from("attachments").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      setAttachments((prev) => prev.filter((a) => a.id !== id));
+    });
+  }, [attachments]);
+
+  const attachmentUrl = useCallback((path: string) => {
+    return supabase.storage.from(ATTACHMENTS_BUCKET).getPublicUrl(path).data.publicUrl;
   }, []);
 
   const restoreFromBackup = useCallback(
@@ -297,6 +362,7 @@ export function useAppData(me: string) {
   return {
     members,
     tasks,
+    attachments,
     loaded,
     connection,
     addMember,
@@ -312,6 +378,9 @@ export function useAppData(me: string) {
     allStoresDone,
     removeTask,
     restoreFromBackup,
+    addAttachment,
+    removeAttachment,
+    attachmentUrl,
     refetch: loadAll,
   };
 }
